@@ -1,0 +1,8 @@
+Product page :
+https://buy.garmin.com/en-US/US/p/557294#specs
+
+How LIDAR works:
+https://www.sparkfun.com/news/2435
+
+Hookup guide:
+https://learn.sparkfun.com/tutorials/lidar-lite-v3-hookup-guide

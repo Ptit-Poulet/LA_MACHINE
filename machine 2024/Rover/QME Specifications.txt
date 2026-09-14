@@ -1,0 +1,8 @@
+Lynxmotion Quadrature Encoder V2
+
+Specifications
+
+    Cycles per revolution: 100
+    Quadrature counts per revolution: 400
+    Frequency: 30kHz
+
