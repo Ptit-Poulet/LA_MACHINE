@@ -1,0 +1,5 @@
+Connections ESP32 - Scorpion Mini
+
+GPIO 18 / GPIO 19 - Signal Throttle/Steer
+VIN - Alimentation de l'ESP32
+2 GND - GND Throttle/Steer
