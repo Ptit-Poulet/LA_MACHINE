@@ -3,11 +3,16 @@
 /*Informations branchement et + :
  Branchement SDA -> A4
  Branchement SCL -> A5
+
+ RSTQ -> D3
+ IRQ -> D2
  Module prend 5v
 */
 
 #include <Wire.h>
 #include <Adafruit_PN532.h>
+
+// sTRIP DE led rgb 
 
 //Simplement pour initialiser nfc tag
 #define PN532_IRQ   (2) 
@@ -78,13 +83,10 @@ void loop() {
   }
   text.toLowerCase();
 
-  Serial.print("Payload: ");
-  Serial.println(text);
-
-  String color = "";
-  if (text.indexOf("red") != -1)        color = "red";
-  else if (text.indexOf("blue") != -1)  color = "blue";
-  else if (text.indexOf("green") != -1) color = "green";
+String color = "";
+if (text.indexOf("rouge") != -1 || text.indexOf("red") != -1)        color = "red";
+else if (text.indexOf("bleu") != -1 || text.indexOf("blue") != -1)   color = "blue";
+else if (text.indexOf("vert") != -1 || text.indexOf("green") != -1)  color = "green";
 
   if (color != "") {
     setColor(color);
