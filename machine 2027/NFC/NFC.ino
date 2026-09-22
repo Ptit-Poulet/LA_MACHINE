@@ -7,22 +7,29 @@
  RSTQ -> D3
  IRQ -> D2
  Module prend 5v
+
+Led green wire (WS2811) -> D5 With 5v (RED)
 */
 
 #include <Wire.h>
 #include <Adafruit_PN532.h>
+#include <FastLED.h>
 
-// sTRIP DE led rgb 
+// LED setup
+#define LED_PIN 5
+#define NUM_LEDS 1  // Nombre de LED
 
-//Simplement pour initialiser nfc tag
+#define BRIGHTNESS  64
+#define LED_TYPE    WS2811
+#define COLOR_ORDER RGB
+CRGB leds[NUM_LEDS];
+
+#define UPDATES_PER_SECOND 100
+
+//Branchement physique seulement, s'assurerr que module switch sur I2C
 #define PN532_IRQ   (2) 
 #define PN532_RESET (3) 
 Adafruit_PN532 nfc(PN532_IRQ, PN532_RESET);
-
-//A voir si on utilise le NEO_Pixel comme l'an passé
-#define LED_RED   10
-#define LED_BLUE  11
-#define LED_GREEN 12
 
 // --- Lecture mémoire NTAG ---
 const uint8_t START_PAGE = 4;
@@ -35,12 +42,10 @@ String currentColor = "";
 void setup() {
   Serial.begin(9600);
 
-  pinMode(LED_RED, OUTPUT);
-  pinMode(LED_BLUE, OUTPUT);
-  pinMode(LED_GREEN, OUTPUT);
-  digitalWrite(LED_RED, LOW);
-  digitalWrite(LED_BLUE, LOW);
-  digitalWrite(LED_GREEN, LOW);
+  FastLED.addLeds<LED_TYPE, LED_PIN, COLOR_ORDER>(leds, NUM_LEDS);
+  FastLED.setBrightness(BRIGHTNESS);
+  FastLED.clear();
+  FastLED.show();
 
   nfc.begin();
   if (!nfc.getFirmwareVersion()) {
@@ -94,19 +99,19 @@ else if (text.indexOf("vert") != -1 || text.indexOf("green") != -1)  color = "gr
     Serial.println("Couleur non reconnue.");
   }
 
-  delay(500); // anti-rebond
+  delay(150); // anti-rebond
 }
 
 void setColor(String color) {
   if (color == currentColor) return; // déjà allumée
 
-  digitalWrite(LED_RED, LOW);
-  digitalWrite(LED_BLUE, LOW);
-  digitalWrite(LED_GREEN, LOW);
+  CRGB c = CRGB::Black;
+  if (color == "red")   c = CRGB::Red;
+  if (color == "blue")  c = CRGB::Blue;
+  if (color == "green") c = CRGB::Green;
 
-  if (color == "red")   digitalWrite(LED_RED, HIGH);
-  if (color == "blue")  digitalWrite(LED_BLUE, HIGH);
-  if (color == "green") digitalWrite(LED_GREEN, HIGH);
+  fill_solid(leds, NUM_LEDS, c);
+  FastLED.show();
 
   currentColor = color;
   Serial.println("LED: " + color);
