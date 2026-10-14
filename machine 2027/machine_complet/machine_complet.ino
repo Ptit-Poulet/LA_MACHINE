@@ -9,11 +9,10 @@ Fichier pour tout réunir les différentes foncitonnalités que le robot devra f
   - Tourne droite
 - Fonctionnement du bras
   - Fermeture/Ouverture Pince
-  - Poignet (peut faire sans ?) 
+  - Poignet rotation et haut/bas 
   - Coude
-  - Épaule
-  - Rotation base (où l'épaule)
-  - Slider 
+  - Épaule 
+  - Rotation base (où l'épaule)  
 */
 
 
