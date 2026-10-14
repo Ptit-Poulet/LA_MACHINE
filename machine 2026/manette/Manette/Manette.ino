@@ -40,8 +40,6 @@ volatile uint16_t RC_SHARED[RC_NUM_CHANNELS];
 
 
 
-
-
 // Setup our program
 void setup() {
   
