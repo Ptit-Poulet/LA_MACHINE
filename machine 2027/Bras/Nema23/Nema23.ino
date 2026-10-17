@@ -6,7 +6,7 @@ const int DIR = 26;
 const int ENA = 27;
 
 const long STEPS_PER_REV = 2000; 
-const int PULSE_US = 425;        // demi-période : 1000 = ~150 tr/min. Baisse à 500 pour aller plus vite
+const int PULSE_US = 1000;        // demi-période : 1000 = ~150 tr/min. Baisse à 500 pour aller plus vite
 const bool POSITIVE_DIR = LOW;    // mets HIGH si le sens est inversé
 
 long position = 0;
