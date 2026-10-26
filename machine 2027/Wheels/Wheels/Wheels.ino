@@ -1,147 +1,133 @@
-// test 4 roues avec manette
-// TODO: à modifier pour la manette
+// 4-wheel mecanum robot, each wheel with its own speed loop
+// Serial commands (115200 baud):
+//  w=forward  s=backward  a=strafe left  d=strafe right
+//  q=turn left  e=turn right  x=stop
+//TODO: fonctionnement avec la manette (implémenter la manette avec!)
+struct Wheel {
+  const char* name;
+  uint8_t pwmPin, dirPin, fgPin; // Blue, White, Yellow
+  bool invert;            // flip if this wheel spins the wrong way
+  volatile uint32_t pulses;
+  float target;           // signed RPM (+ = wheel rolls forward)
+  float rpm;
+  float integral;
+  bool fwd;               // current direction
+  bool reversing;
+  unsigned long revStart;
+};
 
-//    The direction of the car's movement
-//  IN1   IN2   IN3   IN4   Description  
-//  HIGH  LOW   LOW   HIGH  Car is runing forward
-//  LOW   HIGH  HIGH  LOW   Car is runing back
-// Setup wheels in the front
-//  FIN1   FIN2   FIN3   FIN4   
-//  LOW  HIGH   LOW  HIGH   Car is running Left
-//  HIGH  LOW   HIGH  LOW   Car is running Right
-// Setup wheels in the Back
-//  BIN1   BIN2   BIN3   BIN4
-//  HIGH  LOW   HIGH  LOW   Car is running Left
-//  LOW  HIGH   LOW  HIGH   Car is running Right
-//  LOW   HIGH  LOW   HIGH  Car is turning left
-//  HIGH  LOW   HIGH  LOW   Car is turning right
-//  LOW   LOW   LOW   LOW   Car is stoped
-//  HIGH  HIGH  HIGH  HIGH  Car is stoped
- 
-//define L298n module IO Pin
-#define FIN1 7
-#define FIN2 8
-#define FIN3 9
-#define FIN4 11
+Wheel wheels[4] = {
+// name  pwm dir fg  
+  {"FL", 18, 19, 34, false, 0, 0, 0, 0, true, false, 0},
+  {"BL", 16, 17, 35, false, 0, 0, 0, 0, true, false, 0},
+  {"FR", 25, 26, 32, true,  0, 0, 0, 0, true, false, 0},
+  {"_BR", 27, 13, 33, true,  0, 0, 0, 0, true, false, 0},
+};
+enum { FL, BL, FR, _BR };
 
-#define BIN1 7
-#define BIN2 8
-#define BIN3 9
-#define BIN4 11
+const int   PWM_FREQ   = 20000;
+const int   PWM_RES    = 8;
+const float PULSES_REV = 9.0 * 30.0;   // 270 per output rev
+const float MAX_RPM    = 150;          // keep below the 200 no-load max
+const float KP = 0.4, KI = 0.8, FF = 1.2;
 
-void forward(){ 
-  //FrontWheels
-  digitalWrite(FIN1,HIGH); //set FIN1 hight level
-  digitalWrite(FIN2,LOW);  //set FIN2 low level
-  digitalWrite(FIN3,LOW);  //set FIN3 low level
-  digitalWrite(FIN4,HIGH); //set FIN4 hight level
-  //BackWheels
-  digitalWrite(BIN1,HIGH); 
-  digitalWrite(BIN2,LOW);  
-  digitalWrite(BIN3,LOW);  
-  digitalWrite(BIN4,HIGH); 
+void IRAM_ATTR onFG(void* arg) { ((Wheel*)arg)->pulses++; }
 
-  Serial.println("Forward");//send message to serial monitor
+void setDuty(Wheel& w, int duty) {
+  duty = constrain(duty, 0, 255);
+  ledcWrite(w.pwmPin, 255 - duty);     // inverted: LOW = ON
 }
 
-void back(){
-  digitalWrite(FIN1,LOW);
-  digitalWrite(FIN2,HIGH);
-  digitalWrite(FIN3,HIGH);
-  digitalWrite(FIN4,LOW);
-  
-  digitalWrite(BIN1,LOW);
-  digitalWrite(BIN2,HIGH);
-  digitalWrite(BIN3,HIGH);
-  digitalWrite(BIN4,LOW);
-
-  Serial.println("Back");
+void writeDir(Wheel& w, bool fwd) {
+  // HIGH = CCW, LOW = CW. 'invert' accounts for mirrored mounting.
+  bool level = fwd ? w.invert : !w.invert;
+  digitalWrite(w.dirPin, level ? HIGH : LOW);
 }
 
-void left(){
-  digitalWrite(FIN1,LOW);
-  digitalWrite(FIN2,HIGH);
-  digitalWrite(FIN3,LOW);
-  digitalWrite(FIN4,HIGH);
+// vx: forward(+), vy: strafe right(+), wz: turn right/clockwise(+)
+// each in range -1..1
+void drive(float vx, float vy, float wz) {
+  float s[4];
+  s[FL] = vx + vy + wz;
+  s[FR] = vx - vy - wz;
+  s[BL] = vx - vy + wz;
+  s[_BR] = vx + vy - wz;
 
-  digitalWrite(BIN1,HIGH);
-  digitalWrite(BIN2,LOW);
-  digitalWrite(BIN3,HIGH);
-  digitalWrite(BIN4,LOW);
-
-  Serial.println("Left");
+  float m = 1;
+  for (int i = 0; i < 4; i++) if (fabs(s[i]) > m) m = fabs(s[i]);
+  for (int i = 0; i < 4; i++) wheels[i].target = (s[i] / m) * MAX_RPM;
 }
 
-void right(){
-  digitalWrite(FIN1,HIGH);
-  digitalWrite(FIN2,LOW);
-  digitalWrite(FIN3,HIGH);
-  digitalWrite(FIN4,LOW);
-  
-  digitalWrite(BIN1,LOW);
-  digitalWrite(BIN2,HIGH);
-  digitalWrite(BIN3,LOW);
-  digitalWrite(BIN4,HIGH);
-
-
-  Serial.println("Right");
-}
-
-void turnLeft(){
-  digitalWrite(FIN1,LOW);
-  digitalWrite(FIN2,HIGH);
-  digitalWrite(FIN3,LOW);
-  digitalWrite(FIN4,HIGH); 
-  
-  digitalWrite(BIN1,LOW);
-  digitalWrite(BIN2,HIGH);
-  digitalWrite(BIN3,LOW);
-  digitalWrite(BIN4,HIGH); 
-
-  Serial.println("Left");
-}
-
-void turnRight(){
-  digitalWrite(FIN1,HIGH);
-  digitalWrite(FIN2,LOW);
-  digitalWrite(FIN3,HIGH);
-  digitalWrite(FIN4,LOW);
-  
-  digitalWrite(BIN1,HIGH);
-  digitalWrite(BIN2,LOW);
-  digitalWrite(BIN3,HIGH);
-  digitalWrite(BIN4,LOW);
-  
-  Serial.println("Right");
-}
-
-//before execute loop() function, 
-//setup() function will execute first and only execute once
 void setup() {
-  Serial.begin(9600);//open serial and set the baudrate
-  pinMode(FIN1,OUTPUT);//before useing io pin, pin mode must be set first 
-  pinMode(FIN2,OUTPUT);
-  pinMode(FIN3,OUTPUT);
-  pinMode(FIN4,OUTPUT);
-  
-  pinMode(BIN1,OUTPUT);
-  pinMode(BIN2,OUTPUT);
-  pinMode(BIN3,OUTPUT);
-  pinMode(BIN4,OUTPUT);
+  Serial.begin(115200);
+  for (auto& w : wheels) {
+    pinMode(w.dirPin, OUTPUT);
+    pinMode(w.fgPin, INPUT);
+    ledcAttach(w.pwmPin, PWM_FREQ, PWM_RES);
+    setDuty(w, 0);
+    writeDir(w, true);
+    attachInterruptArg(w.fgPin, onFG, &w, RISING);
+  }
+  Serial.println("w/s/a/d/q/e = move, x = stop");
 }
 
-//Repeat execution
+unsigned long lastMs = 0;
+
 void loop() {
-  forward();      //go forward
-  delay(1000);    //delay 1000 ms
-  back();         //go back
-  delay(1000);
-  left();         // go left
-  delay(1000);
-  right();        // go right
-  delay(1000);
-  turnLeft();     //turning left
-  delay(1000);
-  turnRight();    //turning right
-  delay(1000);
+  // --- commands ---
+  while (Serial.available()) {
+    char c = Serial.read();
+    switch (c) {
+      case 'w': drive( 1,  0,  0); break;   // forward
+      case 's': drive(-1,  0,  0); break;   // backward
+      case 'a': drive( 0, -1,  0); break;   // strafe left
+      case 'd': drive( 0,  1,  0); break;   // strafe right
+      case 'q': drive( 0,  0, -1); break;   // turn left
+      case 'e': drive( 0,  0,  1); break;   // turn right
+      case 'x': drive( 0,  0,  0); break;   // stop
+    }
+  }
+
+  // --- speed control every 100 ms ---
+  unsigned long now = millis();
+  if (now - lastMs < 100) return;
+  float dt = (now - lastMs) / 1000.0;
+  lastMs = now;
+
+  for (auto& w : wheels) {
+    noInterrupts();
+    uint32_t p = w.pulses; w.pulses = 0;
+    interrupts();
+    w.rpm = (p / dt) * 60.0 / PULSES_REV;
+
+    float mag = fabs(w.target);
+    bool wantFwd = (w.target >= 0);
+
+    if (mag < 1) {                       // stopped
+      setDuty(w, 0);
+      w.integral = 0;
+      continue;
+    }
+
+    if (wantFwd != w.fwd) {              // reverse: stop first
+      if (!w.reversing) { w.reversing = true; w.revStart = now; }
+      setDuty(w, 0);
+      w.integral = 0;
+      if (w.rpm < 15 || now - w.revStart > 600) {
+        w.fwd = wantFwd;
+        writeDir(w, w.fwd);
+        w.reversing = false;
+      }
+      continue;
+    }
+
+    float err = mag - w.rpm;
+    w.integral += err * dt;
+    w.integral = constrain(w.integral, -150, 150);
+    float out = KP * err + KI * w.integral + mag * FF;
+    setDuty(w, (int)out);
+  }
+
+  Serial.printf("FL %.0f BL %.0f FR %.0f _BR %.0f RPM\n",
+                wheels[FL].rpm, wheels[BL].rpm, wheels[FR].rpm, wheels[_BR].rpm);
 }
