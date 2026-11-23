@@ -8,7 +8,7 @@
 //    Stick DROIT  gauche/droite  (CH1) -> tourner gauche / droite
 //
 //  CÂBLAGE DU RÉCEPTEUR FS-iA10B (port "SERVO" = iBUS) :
-//    Signal -> GPIO 22 de l'ESP32   (PAS le 16 : utilisé par une roue)
+//    Signal -> GPIO 22 de l'ESP32
 //    +      -> 5V / VIN
 //    -      -> GND
 //
@@ -60,8 +60,8 @@ Wheel wheels[4] = {
 // name  pwm dir fg
   {"FL", 18, 19, 34, false, 0, 0, 0, 0, true, false, 0},
   {"BL", 16, 17, 35, false, 0, 0, 0, 0, true, false, 0},
-  {"FR", 25, 26, 32, true,  0, 0, 0, 0, true, false, 0},
-  {"_BR", 27, 13, 33, true, 0, 0, 0, 0, true, false, 0},
+  {"FR", 25, 33, 32, true,  0, 0, 0, 0, true, false, 0},
+  {"_BR", 27, 13, 26, true, 0, 0, 0, 0, true, false, 0},
 };
 // Noms pratiques pour accéder aux roues : wheels[FL], wheels[BL]...
 enum { FL, BL, FR, _BR };
@@ -217,6 +217,7 @@ void loop() {
     float vy = stick(ch[CH_STRAFE],  INV_STRAFE);   // latéral
     float wz = stick(ch[CH_TURN],    INV_TURN);     // rotation
     drive(vx, vy, wz);
+    Serial.printf("vx %.2f vy %.2f wz %.2f\n", vx, vy, wz);
   }
 
   // --- 2. Sécurité : plus de signal -> on arrête tout ---
@@ -263,11 +264,13 @@ void loop() {
     }
 
     // Régulateur de vitesse : compare vitesse voulue et mesurée
-    float err = mag - w.rpm;
-    w.integral += err * dt;
-    w.integral = constrain(w.integral, -150, 150);
-    float out = KP * err + KI * w.integral + mag * FF;
-    setDuty(w, (int)out);
+    // float err = mag - w.rpm;
+    // w.integral += err * dt;
+    // w.integral = constrain(w.integral, -150, 150);
+    // float out = KP * err + KI * w.integral + mag * FF;
+    // setDuty(w, (int)out);
+        // TEST EN BOUCLE OUVERTE (sans PI)
+    setDuty(w, (int)(mag * FF));
   }
 
   // --- 4. Affichage de la vitesse des roues (toutes les 500 ms) ---

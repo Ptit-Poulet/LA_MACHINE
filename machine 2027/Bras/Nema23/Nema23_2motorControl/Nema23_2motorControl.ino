@@ -1,15 +1,6 @@
 // Deux moteurs avec TB6600 : saisie des pas M2 puis M3, mouvement simultané
 // Configuration DIP : SW1 ON, SW2 ON, SW3 OFF, SW4 OFF, SW5 OFF, SW6 ON
 
-// // Moteur 2
-// const int PULM2 = 25;
-// const int DIRM2 = 26;
-// const int ENAM2 = 27;
-// // Moteur 3
-// const int PULM3 = 32;
-// const int DIRM3 = 33;
-// const int ENAM3 = 13;
-
 // Moteur 2
 const int PULM2 = 32;
 const int DIRM2 = 33;

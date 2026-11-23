@@ -1,9 +1,9 @@
 // test Nema 23 avec TB6600
 // SW1 ON, SW2 ON, SW3 OFF, SW4 OFF, SW5 OFF, SW6 ON 
 
-const int PUL = 25;
-const int DIR = 26;
-const int ENA = 27;
+const int PUL = 32;
+const int DIR = 33;
+const int ENA = 13;
 
 const long STEPS_PER_REV = 2000; 
 const int PULSE_US = 1000;        // demi-période : 1000 = ~150 tr/min. Baisse à 500 pour aller plus vite
