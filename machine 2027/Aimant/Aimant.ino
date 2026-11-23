@@ -1,6 +1,6 @@
 // Détection d'aimant (QMC5883P, 0x2C) -> LED flash rouge/vert/bleu sur D6
 // SDA -> A4, SCL -> A5, LED data -> D6
-
+//mettre Tools > proccessor > oldbootloader pour upload
 #include <Wire.h>
 #include <FastLED.h>
 
